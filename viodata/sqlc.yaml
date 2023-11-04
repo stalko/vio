@@ -1,0 +1,19 @@
+version: "2"
+sql:
+- schema: "./db/migrations/"
+  queries: "./db/queries/"
+  engine: "postgresql"
+  strict_function_checks: false
+  gen:
+    go: 
+      package: "gen"
+      out: "./db/gen/"
+      emit_prepared_queries: true
+      emit_interface: true
+      overrides:
+        - db_type: "geometry"
+          nullable: true
+          go_type: "github.com/cridenour/go-postgis.Point"
+        - db_type: "pg_catalog.numeric"
+          go_type: "float64"
+        

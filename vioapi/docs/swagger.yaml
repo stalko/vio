@@ -1,0 +1,60 @@
+definitions:
+  server.ErrorMessage:
+    properties:
+      error:
+        type: string
+      status:
+        type: integer
+    type: object
+  server.IPLocation:
+    properties:
+      city:
+        type: string
+      country:
+        type: string
+      country_code:
+        type: string
+      ip_address:
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      mystery_value:
+        type: integer
+    type: object
+info:
+  contact: {}
+paths:
+  /ip_location/{ip}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: IP address
+        example: 220.235.222.173
+        in: path
+        name: ip
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.IPLocation'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.ErrorMessage'
+        "404":
+          description: Location for given IP - not found
+          schema:
+            $ref: '#/definitions/server.ErrorMessage'
+      security:
+      - Token, OAuth2Password: []
+      summary: Get information about the IP address' location (e.g. country, city)
+      tags:
+      - ip_information
+swagger: "2.0"
