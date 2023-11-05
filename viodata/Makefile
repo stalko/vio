@@ -1,4 +1,3 @@
-GOPACKAGES = $(shell go list ./...)
 MIGRATIONS_DIR=$(shell pwd)/migrations
 DB_DSN=postgres://postgres:postgres@localhost:5432/vio?sslmode=disable
 

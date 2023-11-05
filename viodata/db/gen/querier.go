@@ -9,11 +9,11 @@ import (
 )
 
 type Querier interface {
+	BulkInsertIPLocations(ctx context.Context, arg []BulkInsertIPLocationsParams) (int64, error)
 	GetCountIPLocationsByIPAddress(ctx context.Context, ipAddress string) (int64, error)
 	GetCountryByID(ctx context.Context, id string) (Country, error)
 	GetIPLocationsByIPAddress(ctx context.Context, ipAddress string) (GetIPLocationsByIPAddressRow, error)
 	InsertCountry(ctx context.Context, arg InsertCountryParams) (InsertCountryRow, error)
-	InsertIPLocation(ctx context.Context, arg []InsertIPLocationParams) (int64, error)
 	InsertIPLocationWIP(ctx context.Context, arg InsertIPLocationWIPParams) error
 }
 

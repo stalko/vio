@@ -18,57 +18,70 @@ type csvImporter struct {
 	acceptedEntries  int
 	discardedEntries int
 	m                sync.Mutex
-	workerTimeout    time.Duration
+	countBulkInsert  int
 }
 
-func NewCSVImporter(s storage.Storage, workerTimeout time.Duration) Importer {
+func NewCSVImporter(s storage.Storage, countBulkInsert int) Importer {
 	return &csvImporter{
-		s:             s,
-		workerTimeout: workerTimeout,
+		s:               s,
+		countBulkInsert: countBulkInsert,
 	}
 }
 
 func (s *csvImporter) worker(output <-chan []string) {
+	var queue []storage.InsertIPLocation
+
 	for record := range output {
-		ctx, cancelCtx := context.WithTimeout(context.Background(), s.workerTimeout)
 
 		model, err := RecordToModel(record)
 		if err != nil {
-			s.incrementDiscardedEntries()
-			cancelCtx()
+			s.addDiscardedEntries(1)
 			continue
 		}
 
+		queue = append(queue, storage.InsertIPLocation{
+			IPAddress:    model.IPAddress,
+			CountryName:  model.Country,
+			CountryCode:  model.CountryCode,
+			City:         model.City,
+			Latitude:     model.Latitude,
+			Longitude:    model.Longitude,
+			MysteryValue: model.MysteryValue,
+		})
+
+		if len(queue) > s.countBulkInsert {
+			//insert into storage
+			err = s.s.BulkInsertIPLocation(context.Background(), queue)
+			if err != nil {
+				s.addDiscardedEntries(len(queue))
+			} else {
+				s.addAcceptedEntries(len(queue))
+			}
+
+			queue = []storage.InsertIPLocation{}
+		}
+	}
+
+	if len(queue) > 0 {
 		//insert into storage
-		err = s.s.InsertIPLocation(ctx,
-			model.IPAddress,
-			model.Country,
-			model.CountryCode,
-			model.City,
-			model.Latitude,
-			model.Longitude,
-			model.MysteryValue,
-		)
+		err := s.s.BulkInsertIPLocation(context.Background(), queue)
 		if err != nil {
-			s.incrementDiscardedEntries()
-			cancelCtx()
-			continue
+			s.addDiscardedEntries(len(queue))
+		} else {
+			s.addAcceptedEntries(len(queue))
 		}
-
-		s.incrementAcceptedEntries()
-		cancelCtx()
 	}
 }
 
-func (s *csvImporter) incrementAcceptedEntries() {
+func (s *csvImporter) addAcceptedEntries(i int) {
 	s.m.Lock()
-	s.acceptedEntries++
+	s.acceptedEntries += i
 	s.m.Unlock()
 }
 
-func (s *csvImporter) incrementDiscardedEntries() {
+func (s *csvImporter) addDiscardedEntries(i int) {
 	s.m.Lock()
-	s.discardedEntries++
+	s.discardedEntries += i
 	s.m.Unlock()
 }
 
@@ -81,7 +94,6 @@ func (s *csvImporter) Import(filePath string, countGoRoutine int) (*Output, erro
 
 	// Create a channel to store CSV records
 	output := make(chan []string)
-	defer close(output)
 
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -114,6 +126,8 @@ func (s *csvImporter) Import(filePath string, countGoRoutine int) (*Output, erro
 		totalRows++
 		output <- record
 	}
+
+	close(output) //notify all channels that file read is finished
 
 	for {
 		s.m.Lock()

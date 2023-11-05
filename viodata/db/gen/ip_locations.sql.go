@@ -11,6 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type BulkInsertIPLocationsParams struct {
+	ID           string
+	IpAddress    string
+	CountryID    pgtype.Text
+	CountryCode  pgtype.Text
+	City         pgtype.Text
+	Latitude     pgtype.Float8
+	Longitude    pgtype.Float8
+	MysteryValue pgtype.Int8
+}
+
 const getCountIPLocationsByIPAddress = `-- name: GetCountIPLocationsByIPAddress :one
 SELECT COUNT(*) FROM "ip_locations"
 WHERE ip_address = $1
@@ -64,17 +75,6 @@ func (q *Queries) GetIPLocationsByIPAddress(ctx context.Context, ipAddress strin
 		&i.MysteryValue,
 	)
 	return i, err
-}
-
-type InsertIPLocationParams struct {
-	ID           string
-	IpAddress    string
-	CountryID    pgtype.Text
-	CountryCode  pgtype.Text
-	City         pgtype.Text
-	Latitude     pgtype.Float8
-	Longitude    pgtype.Float8
-	MysteryValue pgtype.Int8
 }
 
 const insertIPLocationWIP = `-- name: InsertIPLocationWIP :exec

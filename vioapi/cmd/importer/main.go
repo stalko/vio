@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"time"
 
 	"github.com/stalko/vioapi/pkg/config"
 	"github.com/stalko/vioapi/pkg/logging"
@@ -18,14 +17,10 @@ type Config struct {
 
 	ImportFile string `env:"IMPORT_FILE"`
 
-	WorkerTimeoutSec int64 `env:"WORKER_TIMEOUT_SEC"`
-	CountGoRoutine   int   `env:"COUNT_GO_ROUTINE"`
+	CountGoRoutine  int `env:"COUNT_GO_ROUTINE"`
+	CountBulkInsert int `env:"COUNT_BULK_INSERT"`
 
-	DatabaseDSN          string `env:"DATABASE_DSN"`
-	DBConnMaxIdleTimeSec int    `env:"DB_CONN_MAX_IDLE_TIME_SEC"`
-	DBBackoffDurationSec int    `env:"DB_BACKOFF_DURATION_SEC"`
-	DBMaxOpenConns       int    `env:"DB_MAX_OPEN_CONNS"`
-	DBBackoffRetryCount  uint64 `env:"DB_BACKOFF_RETRY_COUNT"`
+	DatabaseDSN string `env:"DATABASE_DSN"`
 }
 
 func main() {
@@ -40,17 +35,12 @@ func main() {
 
 	ctx := context.Background()
 
-	s, err := db.NewDB(ctx, cfg.DatabaseDSN, logger, db.DBConfig{
-		ConnMaxIdleTime:   time.Duration(cfg.DBConnMaxIdleTimeSec) * time.Second,
-		MaxOpenConns:      cfg.DBMaxOpenConns,
-		BackoffRetryCount: cfg.DBBackoffRetryCount,
-		BackoffDuration:   time.Duration(cfg.DBBackoffDurationSec) * time.Second,
-	})
+	s, err := db.NewDB(ctx, cfg.DatabaseDSN, logger)
 	if err != nil {
 		log.Fatalf("Failed to create db connection: %s", err.Error())
 	}
 
-	imp := importer.NewCSVImporter(s, time.Duration(cfg.WorkerTimeoutSec)*time.Second)
+	imp := importer.NewCSVImporter(s, cfg.CountBulkInsert)
 
 	result, err := imp.Import(cfg.ImportFile, cfg.CountGoRoutine)
 	if err != nil {

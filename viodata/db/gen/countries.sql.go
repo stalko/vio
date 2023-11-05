@@ -25,18 +25,19 @@ func (q *Queries) GetCountryByID(ctx context.Context, id string) (Country, error
 const insertCountry = `-- name: InsertCountry :one
 WITH new_row AS (
 	INSERT INTO "countries" (id, name)
-	SELECT $1::text, $2::text
-	WHERE NOT EXISTS (SELECT id, name FROM "countries" WHERE name = $2::text)
+	SELECT $1::TEXT, $2::TEXT
+	WHERE NOT EXISTS (SELECT id, name FROM "countries" WHERE name = $2::TEXT)
+	ON CONFLICT DO NOTHING
 	RETURNING id, name
 )
 SELECT id, name FROM new_row
 UNION
-SELECT id, name FROM "countries" WHERE name = $2::text
+SELECT id, name FROM "countries" WHERE name = $2::TEXT
 `
 
 type InsertCountryParams struct {
-	Column1 string
-	Column2 string
+	ID   string
+	Name string
 }
 
 type InsertCountryRow struct {
@@ -45,7 +46,7 @@ type InsertCountryRow struct {
 }
 
 func (q *Queries) InsertCountry(ctx context.Context, arg InsertCountryParams) (InsertCountryRow, error) {
-	row := q.db.QueryRow(ctx, insertCountry, arg.Column1, arg.Column2)
+	row := q.db.QueryRow(ctx, insertCountry, arg.ID, arg.Name)
 	var i InsertCountryRow
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err

@@ -9,13 +9,13 @@ import (
 	"context"
 )
 
-// iteratorForInsertIPLocation implements pgx.CopyFromSource.
-type iteratorForInsertIPLocation struct {
-	rows                 []InsertIPLocationParams
+// iteratorForBulkInsertIPLocations implements pgx.CopyFromSource.
+type iteratorForBulkInsertIPLocations struct {
+	rows                 []BulkInsertIPLocationsParams
 	skippedFirstNextCall bool
 }
 
-func (r *iteratorForInsertIPLocation) Next() bool {
+func (r *iteratorForBulkInsertIPLocations) Next() bool {
 	if len(r.rows) == 0 {
 		return false
 	}
@@ -27,7 +27,7 @@ func (r *iteratorForInsertIPLocation) Next() bool {
 	return len(r.rows) > 0
 }
 
-func (r iteratorForInsertIPLocation) Values() ([]interface{}, error) {
+func (r iteratorForBulkInsertIPLocations) Values() ([]interface{}, error) {
 	return []interface{}{
 		r.rows[0].ID,
 		r.rows[0].IpAddress,
@@ -40,10 +40,10 @@ func (r iteratorForInsertIPLocation) Values() ([]interface{}, error) {
 	}, nil
 }
 
-func (r iteratorForInsertIPLocation) Err() error {
+func (r iteratorForBulkInsertIPLocations) Err() error {
 	return nil
 }
 
-func (q *Queries) InsertIPLocation(ctx context.Context, arg []InsertIPLocationParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"ip_locations"}, []string{"id", "ip_address", "country_id", "country_code", "city", "latitude", "longitude", "mystery_value"}, &iteratorForInsertIPLocation{rows: arg})
+func (q *Queries) BulkInsertIPLocations(ctx context.Context, arg []BulkInsertIPLocationsParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"ip_locations"}, []string{"id", "ip_address", "country_id", "country_code", "city", "latitude", "longitude", "mystery_value"}, &iteratorForBulkInsertIPLocations{rows: arg})
 }

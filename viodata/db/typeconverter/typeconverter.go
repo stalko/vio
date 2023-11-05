@@ -4,36 +4,37 @@ import (
 	"database/sql"
 
 	"github.com/cridenour/go-postgis"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
-func NewNullString(s *string) sql.NullString {
+func NewNullString(s *string) pgtype.Text {
 	if s == nil {
-		return sql.NullString{}
+		return pgtype.Text{}
 	}
-	return sql.NullString{
+	return pgtype.Text{
 		String: *s,
 		Valid:  true,
 	}
 }
 
-func NewStringPointer(s sql.NullString) *string {
+func NewStringPointer(s pgtype.Text) *string {
 	if s.Valid {
 		return &s.String
 	}
 	return nil
 }
 
-func NewNullInt64(v *int64) sql.NullInt64 {
+func NewNullInt64(v *int64) pgtype.Int8 {
 	if v == nil {
-		return sql.NullInt64{}
+		return pgtype.Int8{}
 	}
-	return sql.NullInt64{
+	return pgtype.Int8{
 		Int64: *v,
 		Valid: true,
 	}
 }
 
-func NewInt64Pointer(v sql.NullInt64) *int64 {
+func NewInt64Pointer(v pgtype.Int8) *int64 {
 	if v.Valid {
 		return &v.Int64
 	}
@@ -57,11 +58,11 @@ func NewLatLon(p *postgis.Point) (*float64, *float64) {
 	return nil, nil
 }
 
-func NewNullFloat64(v *float64) sql.NullFloat64 {
+func NewNullFloat64(v *float64) pgtype.Float8 {
 	if v == nil {
-		return sql.NullFloat64{}
+		return pgtype.Float8{}
 	}
-	return sql.NullFloat64{
+	return pgtype.Float8{
 		Float64: *v,
 		Valid:   true,
 	}

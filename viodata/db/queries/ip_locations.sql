@@ -17,7 +17,7 @@ LIMIT 1;
 SELECT COUNT(*) FROM "ip_locations"
 WHERE ip_address = $1;
 
--- name: InsertIPLocation :copyfrom
+-- name: BulkInsertIPLocations :copyfrom
 INSERT INTO "ip_locations" (
     id, 
     ip_address, 

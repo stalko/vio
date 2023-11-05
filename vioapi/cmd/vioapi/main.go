@@ -38,12 +38,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	s, err := db.NewDB(ctx, cfg.DatabaseDSN, logger, db.DBConfig{
-		ConnMaxIdleTime:   30 * time.Second,
-		MaxOpenConns:      10,
-		BackoffRetryCount: 3,
-		BackoffDuration:   3 * time.Second,
-	})
+	s, err := db.NewDB(ctx, cfg.DatabaseDSN, logger)
 	if err != nil {
 		log.Fatalf("Failed to create db connection: %s", err.Error())
 	}
