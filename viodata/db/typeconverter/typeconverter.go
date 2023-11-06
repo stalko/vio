@@ -1,9 +1,6 @@
 package typeconverter
 
 import (
-	"database/sql"
-
-	"github.com/cridenour/go-postgis"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -41,23 +38,6 @@ func NewInt64Pointer(v pgtype.Int8) *int64 {
 	return nil
 }
 
-func NewPoint(lat, lon *float64) *postgis.Point {
-	if lat != nil && lon != nil {
-		return &postgis.Point{
-			X: *lat,
-			Y: *lon,
-		}
-	}
-	return nil
-}
-
-func NewLatLon(p *postgis.Point) (*float64, *float64) {
-	if p != nil {
-		return &p.X, &p.Y
-	}
-	return nil, nil
-}
-
 func NewNullFloat64(v *float64) pgtype.Float8 {
 	if v == nil {
 		return pgtype.Float8{}
@@ -66,11 +46,4 @@ func NewNullFloat64(v *float64) pgtype.Float8 {
 		Float64: *v,
 		Valid:   true,
 	}
-}
-
-func NewFloat64Pointer(v sql.NullFloat64) *float64 {
-	if v.Valid {
-		return &v.Float64
-	}
-	return nil
 }

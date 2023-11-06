@@ -1,12 +1,6 @@
 ## TODO:
 
-- TODO: bulk insert
-
-- Validate structure:
-    - String lenght
-- Create tests for typeconverter
 - Create comments
-- Create tests for DB
 
 
 // * Define a data format suitable for the data contained in the CSV file;

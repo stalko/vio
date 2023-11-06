@@ -24,7 +24,7 @@ type dbImpl struct {
 }
 
 func NewDB(ctx context.Context, dsn string, logger *zap.Logger) (storage.Storage, error) {
-	dbpool, err := pgxpool.New(context.Background(), dsn)
+	dbpool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -37,14 +37,11 @@ func NewDB(ctx context.Context, dsn string, logger *zap.Logger) (storage.Storage
 	}, nil
 }
 
-// GetCountIPLocationsByIPAddress
-func (db *dbImpl) GetCountIPLocationsByIPAddress(ctx context.Context, ipAddress string) (int64, error) {
-	count, err := db.querier.GetCountIPLocationsByIPAddress(ctx, ipAddress)
-	if err != nil {
-		db.logger.Error("can't count ip_locations", zap.String("ip_address", ipAddress), zap.Error(err))
-		return 0, fmt.Errorf("error counting amount of ip_locations: %w", err)
+func NewDBFromQuerier(ctx context.Context, querier gen.Querier, logger *zap.Logger) storage.Storage {
+	return &dbImpl{
+		logger:  logger,
+		querier: querier,
 	}
-	return count, nil
 }
 
 // GetIPLocationsByIPAddress
@@ -86,46 +83,6 @@ func (db *dbImpl) GetIPLocationsByIPAddress(ctx context.Context, ipAddress strin
 	}
 
 	return res, nil
-}
-
-// InsertIPLocation
-func (db *dbImpl) InsertIPLocation(ctx context.Context, IPLocation storage.InsertIPLocation) error {
-	var countryID pgtype.Text
-
-	if IPLocation.CountryName != nil {
-		country, err := db.querier.InsertCountry(ctx, gen.InsertCountryParams{
-			ID:   cuid.New(),
-			Name: *IPLocation.CountryName,
-		})
-		if err != nil {
-			db.logger.Error("can't insert country", zap.Error(err), zap.String("country_name", *IPLocation.CountryName))
-			return fmt.Errorf("error inverting a country: %w", err)
-		}
-
-		countryID = pgtype.Text{
-			String: country.ID,
-			Valid:  true,
-		}
-	}
-
-	_, err := db.querier.BulkInsertIPLocations(ctx, []gen.BulkInsertIPLocationsParams{
-		{
-			ID:           cuid.New(),
-			CountryID:    countryID,
-			IpAddress:    IPLocation.IPAddress,
-			CountryCode:  tc.NewNullString(IPLocation.CountryCode),
-			City:         tc.NewNullString(IPLocation.City),
-			MysteryValue: tc.NewNullInt64(IPLocation.MysteryValue),
-			Latitude:     tc.NewNullFloat64(IPLocation.Latitude),
-			Longitude:    tc.NewNullFloat64(IPLocation.Longitude),
-		},
-	})
-	if err != nil {
-		db.logger.Error("can't insert ip_location", zap.Error(err), zap.String("ip_address", IPLocation.IPAddress))
-		return fmt.Errorf("error inverting an ip_location: %w", err)
-	}
-
-	return nil
 }
 
 // InsertIPLocation

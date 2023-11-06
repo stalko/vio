@@ -11,24 +11,30 @@ import (
 	"time"
 
 	"github.com/stalko/viodata/storage"
+	"go.uber.org/zap"
 )
 
 type csvImporter struct {
-	s                storage.Storage
+	storage          storage.Storage
 	acceptedEntries  int
 	discardedEntries int
-	m                sync.Mutex
+	mutex            sync.Mutex
 	countBulkInsert  int
+	logger           *zap.Logger
+	ctx              context.Context
 }
 
-func NewCSVImporter(s storage.Storage, countBulkInsert int) Importer {
+func NewCSVImporter(s storage.Storage, countBulkInsert int, logger *zap.Logger, ctx context.Context) Importer {
 	return &csvImporter{
-		s:               s,
+		storage:         s,
 		countBulkInsert: countBulkInsert,
+		logger:          logger,
+		ctx:             ctx,
 	}
 }
 
 func (s *csvImporter) worker(output <-chan []string) {
+	s.logger.Info("worker started")
 	var queue []storage.InsertIPLocation
 
 	for record := range output {
@@ -49,12 +55,17 @@ func (s *csvImporter) worker(output <-chan []string) {
 			MysteryValue: model.MysteryValue,
 		})
 
-		if len(queue) > s.countBulkInsert {
+		if len(queue) >= s.countBulkInsert {
 			//insert into storage
-			err = s.s.BulkInsertIPLocation(context.Background(), queue)
+			err = s.storage.BulkInsertIPLocation(s.ctx, queue)
 			if err != nil {
+				s.logger.Error("can't bulk insert ip_locations",
+					zap.Int("count", len(queue)),
+					zap.Error(err),
+				)
 				s.addDiscardedEntries(len(queue))
 			} else {
+				s.logger.Info("successfully bulk inserted ip_locations", zap.Int("count", len(queue)))
 				s.addAcceptedEntries(len(queue))
 			}
 
@@ -64,7 +75,7 @@ func (s *csvImporter) worker(output <-chan []string) {
 
 	if len(queue) > 0 {
 		//insert into storage
-		err := s.s.BulkInsertIPLocation(context.Background(), queue)
+		err := s.storage.BulkInsertIPLocation(s.ctx, queue)
 		if err != nil {
 			s.addDiscardedEntries(len(queue))
 		} else {
@@ -74,15 +85,15 @@ func (s *csvImporter) worker(output <-chan []string) {
 }
 
 func (s *csvImporter) addAcceptedEntries(i int) {
-	s.m.Lock()
+	s.mutex.Lock()
 	s.acceptedEntries += i
-	s.m.Unlock()
+	s.mutex.Unlock()
 }
 
 func (s *csvImporter) addDiscardedEntries(i int) {
-	s.m.Lock()
+	s.mutex.Lock()
 	s.discardedEntries += i
-	s.m.Unlock()
+	s.mutex.Unlock()
 }
 
 func (s *csvImporter) Import(filePath string, countGoRoutine int) (*Output, error) {
@@ -90,6 +101,7 @@ func (s *csvImporter) Import(filePath string, countGoRoutine int) (*Output, erro
 		return nil, fmt.Errorf("count of the go routine can't be 0 or negative")
 	}
 
+	s.logger.Info("importing started")
 	start := time.Now()
 
 	// Create a channel to store CSV records
@@ -130,9 +142,9 @@ func (s *csvImporter) Import(filePath string, countGoRoutine int) (*Output, erro
 	close(output) //notify all channels that file read is finished
 
 	for {
-		s.m.Lock()
+		s.mutex.Lock()
 		isAllWorkerDone := totalRows == s.acceptedEntries+s.discardedEntries
-		s.m.Unlock()
+		s.mutex.Unlock()
 
 		if isAllWorkerDone {
 			break

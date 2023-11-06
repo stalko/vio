@@ -17,6 +17,7 @@ import (
 
 type HTTPServer struct {
 	srv     *http.Server
+	Router  *gin.Engine
 	logger  *zap.Logger
 	vioData viodata.VioData
 }
@@ -37,16 +38,16 @@ func NewHTTPServer(port string, logger *zap.Logger, vioData viodata.VioData) Ser
 		vioData: vioData,
 	}
 
-	router := gin.Default()
-	router.GET("/", func(c *gin.Context) {
+	s.Router = gin.Default()
+	s.Router.GET("/", func(c *gin.Context) {
 		c.Redirect(http.StatusPermanentRedirect, "/swagger/index.html")
 	})
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler)) //render swagger documentation from the folder: ./docs
-	router.GET("/ip_location/:ip", s.GetIPInformation)
+	s.Router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler)) //render swagger documentation from the folder: ./docs
+	s.Router.GET("/ip_location/:ip", s.GetIPInformation)
 
 	s.srv = &http.Server{
 		Addr:    fmt.Sprintf(":%s", port),
-		Handler: router,
+		Handler: s.Router,
 	}
 
 	return s

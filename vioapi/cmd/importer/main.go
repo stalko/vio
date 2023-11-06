@@ -40,7 +40,7 @@ func main() {
 		log.Fatalf("Failed to create db connection: %s", err.Error())
 	}
 
-	imp := importer.NewCSVImporter(s, cfg.CountBulkInsert)
+	imp := importer.NewCSVImporter(s, cfg.CountBulkInsert, logger, ctx)
 
 	result, err := imp.Import(cfg.ImportFile, cfg.CountGoRoutine)
 	if err != nil {

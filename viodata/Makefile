@@ -1,3 +1,4 @@
+GOPACKAGES = $(shell go list ./...)
 MIGRATIONS_DIR=$(shell pwd)/migrations
 DB_DSN=postgres://postgres:postgres@localhost:5432/vio?sslmode=disable
 
@@ -14,3 +15,12 @@ test-migrate-down:
 
 gen-sql:
 	sqlc generate
+
+mockgen:
+	@echo "Generating mocks..."
+	@mockgen -source=storage/storage.go -destination=storage/mock.go -package=storage
+	@mockgen -source=db/gen/querier.go -destination=db/gen/mock.go -package=gen
+	@mockgen -source=viodata.go -destination=mock.go -package=viodata
+
+test:
+	@go test ./...
