@@ -1,52 +1,45 @@
 # FindHotel Coding Challenge
 
-## Geolocation Service
+This project allows to import and access geolocation data over HTTP. The project has two main components:
+1. `viodata` - library for importing, validating and accessing saved data(in the Database).
+2. `vioapi` - application for using `viodata` as importer or as a datasource.
 
-### Overview
+## How to run?
+Ensure you've setup correctly `.env` environment variables. You can make it by copying `.env.example` file.
 
-You are provided with a CSV file (`data_dump.csv`) that contains raw geolocation data. The goal is to develop a service that imports such data and expose it via an API.
+For running project you need to install docker-compose. Link: https://docs.docker.com/compose/install/
 
-Sample data:
+Once the docker-compose is ready you can execute following command in the root folder `vio`:
 ```
-ip_address,country_code,country,city,latitude,longitude,mystery_value
-200.106.141.15,SI,Nepal,DuBuquemouth,-84.87503094689836,7.206435933364332,7823011346
-160.103.7.140,CZ,Nicaragua,New Neva,-68.31023296602508,-37.62435199624531,7301823115
-70.95.73.73,TL,Saudi Arabia,Gradymouth,-49.16675918861615,-86.05920084416894,2559997162
-,PY,Falkland Islands (Malvinas),,75.41685191518815,-144.6943217219469,0
-125.159.20.54,LI,Guyana,Port Karson,-78.2274228596799,-163.26218895343357,1337885276
+docker-compose up
 ```
 
-### Requirements
+This command will setup `importer` and `api` services as well as dependent services like: `postgreSQL`, `pgWeb` and `migration`.
 
-1. Develop a library/component with two main features:
-    * A service that parses the CSV file containing the raw data and persists it in a database;
-    * An interface to provide access to the geolocation data (model layer);
-1. Develop a REST API that uses the aforementioned library to expose the geolocation data.
+Almost all components related to have ready `postgreSQL` first. Once it's ready `migrating` process will start to ensure the schema of the database is correct. You can open `pgweb` page by following link: `https://localhost:8081` and check the schema.
 
-In doing so:
-* Define a data format suitable for the data contained in the CSV file;
-* Sanitise the entries: the file comes from an unreliable source, this means that the entries can be duplicated, may miss some value, the value can not be in the correct format or completely bogus;
-* At the end of the import process, return some statistics about the time elapsed, as well as the number of entries accepted/discarded;
-* The library should be configurable by an external configuration (particularly with regards to the DB configuration);
-* The API layer should implement a single HTTP endpoint that, given an IP address, returns information about the IP address' location (e.g. country, city).
+Importing process will start in parallel with serving api. Entire process of importing can take a while depens on your docker configuration(like vCPU, vRAM, ect.) and local configuration of importing. You can find this configuration in the `.env` file. 
 
-### Expected outcome and shipping:
+There are two main configurations:
+1. `COUNT_GO_ROUTINE` - define amount of concurrent goroutine can handle(validate and insert) each row from imported file. 
+2. `COUNT_BULK_INSERT` - define maximum amount of `ip_location` entities can be inserted in bulk operation to the database. It might be less entities in case when we rich the end of the imported file.
 
-* A library/component that packages the import service and the interface for accessing the geolocation data;
-* A REST API application that uses the aforementioned library
+And one additional parameter in the docker-compose `max_connections=1000` for database describes maximum count of connections. By default in equal `100`, but has changed to `1000` to be more flexible with main configs. Exceeding the stated number will result in an error stating "too many clients already".
 
-### Notes
+### Expected result:
+With example local configuration from `.env.example` and setup: CPUs - 8, Memory - 16 GB(MacBook Pro 16 M1 PRO) importing result is:
+```
+{"importing_duration": "2m49.577327452s", "accepted_entries": 950076, "discarded_entries": 49924}
+```
 
-* The file's contents are fake, you do not have to worry about data correctness.
-* For running the application locally (development) you can decide to include a docker-compose, or setup a Makefile.
-* You can structure the repository as you see it fit.
+To access API follow the link: `https://localhost:8080/` it will automatically redirects to swagger documentation. At the same page located API query to get `ip_location` data by providing `IP Address`. By hitting `Try it out` the HTTP Request can be executed with custom `IP Address`: 
+![API Example](api_example.png)
 
-### Evaluation
+## TODO:
 
-The following are the criteria we will use to evaluate your work:
-- Code quality;
-- Well-tested solution;
-- Best code practices in general;
-- Architectural design skills;
-- API design and data structure skills (i.e. correctness of the API responses, etc);
-- Communication and writing skills (i.e. documentation on how the apps works, setup and tradeoffs).
+- [ ] API  | Introduce pagination, if there are more then one result on getting `ip_location` by `IP Address`;
+- [ ] DATA | Improve storing `country_code` and `city` fields by including `country_code` to `countries` table and `city` as additional table linked to `country` and `ip_locations`. Right now it's not implemented due to slowing down process of importing and incorrect data(for example country `Netherlands` can have different country code like `PA`, `MT`);
+- [ ] DATA | Store geolocation data in geometry Point object(GIS) instead of two columns. It will simplify GEO-queries in the future. Right now database already supporting GIS extension and there is a query for getting and saving geometry object. But, it will slow down importing due to limitation of using `copyfrom` feature.
+
+### Notes:
+- Database normalization will slow down speed of importing. But it can be improved with additional job that will take care of creating additional keys when it's required.

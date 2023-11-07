@@ -49,7 +49,7 @@ services:
     links: 
       - postgres:postgres
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/vio?sslmode=disable
+      - DATABASE_URL=${DATABASE_DSN}
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,9 +59,9 @@ services:
       dockerfile: Dockerfile.api
       context: .
     environment:
-      - ENV=development
-      - HTTP_PORT=8080
-      - DATABASE_DSN=postgres://postgres:postgres@postgres:5432/vio?sslmode=disable
+      - ENV=${ENV}
+      - HTTP_PORT=${HTTP_PORT}
+      - DATABASE_DSN=${DATABASE_DSN}
     ports:
         - "8080:8080"
     volumes:
@@ -78,11 +78,11 @@ services:
       context: .
     restart: "no"
     environment:
-      - ENV=development
-      - DATABASE_DSN=postgres://postgres:postgres@postgres:5432/vio?sslmode=disable
-      - IMPORT_FILE=./app/data_dump.csv
-      - COUNT_GO_ROUTINE=50
-      - COUNT_BULK_INSERT=500
+      - ENV=${ENV}
+      - DATABASE_DSN=${DATABASE_DSN}
+      - IMPORT_FILE=./app/${IMPORT_FILE}
+      - COUNT_GO_ROUTINE=${COUNT_GO_ROUTINE}
+      - COUNT_BULK_INSERT=${COUNT_BULK_INSERT}
     volumes:
       - .:/app
     links: 
