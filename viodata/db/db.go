@@ -44,7 +44,8 @@ func NewDBFromQuerier(ctx context.Context, querier gen.Querier, logger *zap.Logg
 	}
 }
 
-// GetIPLocationsByIPAddress
+// GetIPLocationsByIPAddress with argument IP address, returns information about the IP address' location (e.g. country, city)
+// return an error storage.ErrIPLocationNotFound in case when select return's 0 entities from the database
 func (db *dbImpl) GetIPLocationsByIPAddress(ctx context.Context, ipAddress string) (*storage.IPLocation, error) {
 	ipLocation, err := db.querier.GetIPLocationsByIPAddress(ctx, ipAddress)
 	if err != nil {
@@ -85,7 +86,7 @@ func (db *dbImpl) GetIPLocationsByIPAddress(ctx context.Context, ipAddress strin
 	return res, nil
 }
 
-// InsertIPLocation
+// BulkInsertIPLocation inserting list of IPLocations as well as countries for them to the database. Each country will be inserted in for loop. IPLocations will be inserted in one go with `copyfrom` feature.
 func (db *dbImpl) BulkInsertIPLocation(ctx context.Context, IPLocations []storage.InsertIPLocation) error {
 	insertLocations := []gen.BulkInsertIPLocationsParams{}
 

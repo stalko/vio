@@ -1,4 +1,4 @@
-package importer
+package model
 
 import (
 	"errors"
@@ -20,7 +20,7 @@ const (
 // CSVModel represents a single row in the CSV file
 type CSVModel struct {
 	IPAddress    string   // max length: 45
-	CountryCode  *string  // max length: 2
+	CountryCode  *string  // max length: 2; ALPHA-2 ISO 3166
 	Country      *string  // max length: 100
 	City         *string  // max length: 200
 	Latitude     *float64 // max/min 90.0000000 to -90.0000000
@@ -36,6 +36,7 @@ var ErrInvalidCityLength = errors.New("invalid city length")
 var ErrInvalidLatitude = errors.New("invalid latitude, should be in range -90:90")
 var ErrInvalidLongitude = errors.New("invalid longitude, should be in range -180:180")
 
+// RecordToModel - validating and converting record string array to CSVModel
 func RecordToModel(record []string) (*CSVModel, error) {
 	var model CSVModel
 

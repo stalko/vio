@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/stalko/viodata/model"
 	"github.com/stalko/viodata/storage"
 	"go.uber.org/zap"
 )
@@ -33,13 +34,14 @@ func NewCSVImporter(s storage.Storage, countBulkInsert int, logger *zap.Logger, 
 	}
 }
 
+// worker - process in goroutine receiving new row from reader. Validate and insert entities.
 func (s *csvImporter) worker(output <-chan []string) {
 	s.logger.Info("worker started")
 	var queue []storage.InsertIPLocation
 
 	for record := range output {
 
-		model, err := RecordToModel(record)
+		model, err := model.RecordToModel(record)
 		if err != nil {
 			s.addDiscardedEntries(1)
 			continue
@@ -96,8 +98,11 @@ func (s *csvImporter) addDiscardedEntries(i int) {
 	s.mutex.Unlock()
 }
 
+// Import start importing process with given filePath and amount of the goroutine to insert data
+// countGoRoutine - can't be less than 1
+// return statistics about the time elapsed, as well as the number of entries accepted/discarded
 func (s *csvImporter) Import(filePath string, countGoRoutine int) (*Output, error) {
-	if countGoRoutine <= 0 {
+	if countGoRoutine < 1 {
 		return nil, fmt.Errorf("count of the go routine can't be 0 or negative")
 	}
 
@@ -117,7 +122,7 @@ func (s *csvImporter) Import(filePath string, countGoRoutine int) (*Output, erro
 	for i := 0; i < countGoRoutine; i++ {
 		go s.worker(output)
 	}
-	//all workers are created
+	s.logger.Info("all workers are created")
 
 	reader := csv.NewReader(file)
 
@@ -139,7 +144,7 @@ func (s *csvImporter) Import(filePath string, countGoRoutine int) (*Output, erro
 		output <- record
 	}
 
-	close(output) //notify all channels that file read is finished
+	close(output) //notify all channels that file reading is finished
 
 	for {
 		s.mutex.Lock()

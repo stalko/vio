@@ -123,11 +123,13 @@ func (s *HTTPServer) GetIPInformation(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+// Run running HTTP server with given port
 func (s *HTTPServer) Run() error {
 	s.logger.Info(fmt.Sprintf("running HTTP server on %s", s.srv.Addr))
 	return s.srv.ListenAndServe()
 }
 
+// Shutdown terminating HTTP server
 func (s *HTTPServer) Shutdown(ctx context.Context) {
 	s.logger.Info(fmt.Sprintln("shutting down HTTP server"))
 	s.srv.Shutdown(ctx)

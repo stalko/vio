@@ -1,10 +1,10 @@
-package importer_test
+package model_test
 
 import (
 	"math/rand"
 	"testing"
 
-	"github.com/stalko/viodata/importer"
+	"github.com/stalko/viodata/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,7 +35,7 @@ func TestRecordToModel(t *testing.T) {
 		mysteryValue,
 	}
 
-	model, err := importer.RecordToModel(record)
+	model, err := model.RecordToModel(record)
 	assert.NoError(t, err)
 	if assert.NotNil(t, model) {
 		assert.Equal(t, model.IPAddress, IPAddress)
