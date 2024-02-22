@@ -47,7 +47,7 @@ func main() {
 
 	srv := server.NewHTTPServer(cfg.HTTPPort, logger, vd)
 
-	srv.Run()
+	go srv.Run()
 
 	<-ctx.Done()
 	err = ctx.Err()
